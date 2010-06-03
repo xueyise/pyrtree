@@ -12,8 +12,8 @@ import time
 
 # TODO: make these command-line params.
 
-ITER=10000 # ten meeelion
-INTERVAL=10 # log at every 10k
+ITER=1000000 # one meeelion
+INTERVAL=1000 # log at every 1k
 
 if __name__ == "__main__":
     G = RectangleGen()
