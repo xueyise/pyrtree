@@ -4,46 +4,48 @@
 MAXCHILDREN=10
 MAX_KMEANS=5
 import math, random, sys
-EPSILON = 2.0 * sys.float_info.epsilon
+
 
 class Rect(object):
-    def __init__(self, b):
-        self.r = b
+    def __init__(self, minx,miny,maxx,maxy):
+        self.r = (minx,miny,maxx,maxy)
 
     def overlap(self, orect):
         return self.intersect(orect).area()
 
     def area(self):
         if self.r is None: return 0
-        x,y,w,h = self.r
+        x,y,x2,y2 = self.r
+        w = x2 - x
+        h = y2 - y
         return w * h
 
-    def bounds(self):
-        x,y,w,h = self.r
-        return (x,y,x+w,y+h)
+    def extent(self):
+        x,y,xx,yy = self.r
+        return (x,y,xx-x,yy-y)
 
     def grow(self, amt):
-        x,y,w,h = self.r
+        x,y,x2,y2 = self.r
         a = amt * 0.5
-        return Rect((x-a,y-a,w+a,h+a))
+        return Rect(x-a,y-a,x2+a,y2+a)
 
     def intersect(self,o):
         if self.r is None: return NullRect
         if o.r is None: return NullRect
 
-        x,y,x2,y2 = self.bounds()
-        xx,yy,xx2,yy2 = o.bounds()
+        x,y,x2,y2 = self.r
+        xx,yy,xx2,yy2 = o.r
         nx,ny = max(x,xx),max(y,yy)
         nx2,ny2 = min(x2,xx2),min(y2,yy2)
         w,h = nx2-nx, ny2-ny
 
         if w <= 0 or h <= 0: return NullRect
 
-        return Rect( (nx,ny,w,h ))
+        return Rect(nx,ny,nx2,ny2)
 
 
     def does_contain(self,o):
-        x,y,xx,yy = o.bounds()
+        x,y,xx,yy = o.r
         return self.does_containpoint( (x,y) ) and self.does_containpoint( (xx,yy) )
 
     def does_intersect(self,o):
@@ -51,31 +53,30 @@ class Rect(object):
 
     def does_containpoint(self,p):
         x,y = p
-        xx,yy,x2,y2 = self.bounds()
-        xx,yy,x2,y2 = (xx - EPSILON), (yy - EPSILON), (x2 + EPSILON), (y2 + EPSILON)
+        xx,yy,x2,y2 = self.r
         return (x >= xx and x <= x2 and y >= yy and y <= y2)
 
     def union(self,o):
         if o.r is None: return self
         if self.r is None: return o
 
-        x,y,x2,y2 = self.bounds()
-        xx,yy,xx2,yy2 = o.bounds()
+        x,y,x2,y2 = self.r
+        xx,yy,xx2,yy2 = o.r
         nx,ny = min(x,xx),min(y,yy)
         nx2,ny2 = max(x2,xx2),max(y2,yy2)
-        return Rect( (nx,ny,nx2-nx,ny2-ny ))
+        return Rect(nx,ny,nx2,ny2)
 
     def union_point(self,o):
         x,y = o
-        return self.union(Rect((x,y,0,0)))
+        return self.union(Rect(x,y,x,y))
 
     def diagonal(self):
         if self.r is None: return 0
-        x,y,w,h = self.r
+        x,y,w,h = self.extent()
         return math.sqrt(w*w + h*h)
 
-NullRect = Rect(None)
-
+NullRect = Rect(0,0,0,0)
+NullRect.r = None
 
 def union_all(kids):
     cur = NullRect
@@ -97,8 +98,7 @@ class RTree(object):
         self.node.insert(o)
 
     def deleaf(self):
-        pass
-    
+        pass    
 
 class Node(object):
     def __init__(self, kids = [], leaf=True, parent = None):
@@ -122,7 +122,6 @@ class Node(object):
         """ Return things that intersect with 'r'. """
         def p(o): return r.does_intersect(o.rect)
         for rr in self.walk(p):
-            #if not isinstance(rr,Node):
             yield rr
 
     def query_point(self,point):
@@ -130,7 +129,6 @@ class Node(object):
         def p(o): return o.rect.does_containpoint(point)
             
         for rr in self.walk(p):
-            #if not isinstance(rr,Node):
             yield rr
 
     def walk(self, predicate):
@@ -170,7 +168,6 @@ class Node(object):
             self.isleaf = False
             self.children = [ Node([c], True, self) for c in self.children ]
             self.parent.deleaf()
-
 
 def silhouette_w(node, cluster, next_closest_cluster):
     neighbors = [node.rect.union(r.rect).diagonal() for r in cluster ]
@@ -235,6 +232,7 @@ def k_means_cluster(k, nodes):
         
         #FIXME HACK TODO: is it okay for there to be empty clusters?
         clusters = [ c for c in clusters if len(c) > 0 ]
+
         for c in clusters:
             if (len(c) == 0):
                 print("Errorrr....")

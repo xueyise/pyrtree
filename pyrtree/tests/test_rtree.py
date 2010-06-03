@@ -24,26 +24,27 @@ class TstO(object):
 class RectangleGen(object):
     """ Generate random rectangles w/ various properties. """
     def rect(self, size=10.0):
-        return Rect((rr(),rr(),random.uniform(0.0,size), random.uniform(0.0,size)))
+        x,y,w,h = rr(),rr(),random.uniform(0.0,size), random.uniform(0.0,size)
+        return Rect(x,y,x+w,y+h)
 
     def intersectingWith(self,ra):
-        sx,sy,ndx,ndy = ra.bounds()
+        sx,sy,ndx,ndy = ra.r
         rb_x = random.uniform(sx,ndx)
         rb_y = random.uniform(sy,ndy)
-        return Rect((rb_x,rb_y,rr(),rr()))
+        return Rect(rb_x,rb_y,rb_x + rr(),rb_y + rr())
 
     def disjointWith(self, ra):
-        ax,ay,aw,ah = ra.r
+        ax,ay,aw,ah = ra.extent()
         w,h = rr(),rr()
         distsq = max(w*w + h*h, aw*aw + ah * ah)
         dist = 2.0 * math.sqrt(distsq) + random.uniform(0.1, 1.0)
         ang = random.uniform(0.0, 2.0 * math.pi)
         x = math.cos(ang) * dist
         y = math.sin(ang) * dist
-        return Rect((ax+x,ay+y,w,h))
+        return Rect(ax+x,ay+y,ax+x+w,ay+y+h)
 
     def pointInside(self, r):
-        x,y,xx,yy = r.bounds()
+        x,y,xx,yy = r.r
         return (random.uniform(x,xx),random.uniform(y,yy))
 
     def pointOutside(self,r):
@@ -69,23 +70,23 @@ G = RectangleGen()
 
 class RectangleTests(ut.TestCase):
     def testCons(self):
-        r = Rect((0,0,10,10))
+        r = Rect(0,0,10,10)
         self.assertTrue(r is not None)
-        self.assertTrue(r.bounds() is not None)
+        self.assertTrue(r.r is not None)
     
     def testIntersection(self):
-        ra = Rect((0,0,10,10))
-        rb = Rect((5,5,10,10))
+        ra = Rect(0,0,10,10)
+        rb = Rect(5,5,15,15)
         res = ra.intersect(rb)
-        x,y,w,h = res.r
+        x,y,w,h = res.extent()
         self.assertEquals(x,5)
         self.assertEquals(y,5)
         self.assertEquals(w,5)
         self.assertEquals(h,5)
         self.assertEquals(res.area(), 25)
 
-        rc = Rect((0,0,10,10))
-        rd = Rect((11,11,10,10))
+        rc = Rect(0,0,10,10)
+        rd = Rect(11,11,21,21)
         res2 = rc.intersect(rd)
         self.assertEquals(res2.area(),0)
         self.assertTrue(res2.r is None)
@@ -100,9 +101,9 @@ class RectangleTests(ut.TestCase):
         self.assertTrue(NullRect.intersect(ra).r is None)
 
     def testUnion(self):
-        ra = Rect((0,0,10,10))
-        rb = Rect((-10,-10,11,11))
-        x,y,w,h = ra.union(rb).r
+        ra = Rect(0,0,10,10)
+        rb = Rect(-10,-10,1,1)
+        x,y,w,h = ra.union(rb).extent()
         self.assertEquals(x,-10)
         self.assertEquals(y,-10)
         self.assertEquals(w,20)
