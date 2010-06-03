@@ -143,6 +143,10 @@ class Node(object):
         if self.isleaf: return 1
         return 1 + (max([ s.max_depth() for s in self.children ]))
 
+    def mean_depth(self):
+        if self.isleaf: return 1
+        return 1 + (sum( s.mean_depth() for s in self.children) / len(self.children))
+
     def __insert_child(self, child):
         # Add it to the children:
         self.children.append(child)

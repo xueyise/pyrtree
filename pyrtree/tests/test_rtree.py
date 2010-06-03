@@ -1,4 +1,4 @@
-
+# FIXME: path hackery.
 if __name__ == "__main__":
     import sys, os
     mypath = os.path.dirname(sys.argv[0])
@@ -116,7 +116,7 @@ class RectangleTests(ut.TestCase):
             self.assertTrue(u.intersect(a).area() > 0)
             self.assertTrue(b.intersect(u).area() > 0)
             self.assertTrue(u.intersect(b).area() > 0)
-            self.assertTrue(u.area() >= (max(a.area(),b.area()) - 0.00001), 
+            self.assertTrue(u.area() >= (max(a.area(),b.area())), 
                             "union area (iter %d) fail %f >= %f" % (i,u.area(),(max(a.area(),b.area()))))
 
             c,d = G.disjointPair()
@@ -233,7 +233,7 @@ class RTreeTest(ut.TestCase):
             self.assertFalse(x in rres)
 
     def testLogBehavior(self):
-        return None
+        #return None
         stops = [10,100,1000,10000,100000,1000000]
 
         rt = RTree()
@@ -241,7 +241,6 @@ class RTreeTest(ut.TestCase):
             for v in range(x):
                 rt.node.insert(TstO(G.rect(0.00001)))
             print("Depth: %d" % rt.node.max_depth())
-
 
 
 if __name__ == '__main__':
