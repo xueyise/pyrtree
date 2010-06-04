@@ -4,7 +4,7 @@
 MAXCHILDREN=10
 MAX_KMEANS=5
 import math, random, sys
-
+import time
 
 class Rect(object):
     def __init__(self, minx,miny,maxx,maxy):
@@ -86,15 +86,19 @@ def union_all(kids):
 class RTree(object):
     def __init__(self):
         self.count = 0
-        self.stats = { "root_replace" : 0 ,
-                       "deleaf" : 0,
-                       "overflow" : 0 }
+        self.stats = { 
+            "deleaf_f" : 0,
+            "overflow_f" : 0,
+            "longest_overflow" : 0.0,
+            "longest_kmeans" : 0.0,
+            "sum_kmeans_iter_f" : 0,
+            "count_kmeans_iter_f" : 0,
+            "avg_kmeans_iter_f" : 0.0
+            }
         self.node = Node([],True,self)
-
 
     def replace(self, o, ncs):
         self.node = Node(ncs,False,self)
-        self.stats["root_replace"] += 1
 
     def insert(self,o):
         self.count += 1
@@ -104,7 +108,7 @@ class RTree(object):
     def is_root(self): return True
 
     def deleaf(self):
-        self.stats["deleaf"] += 1
+        self.stats["deleaf_f"] += 1
 
 
 class Node(object):
@@ -112,13 +116,14 @@ class Node(object):
         self.children = kids
         for c in self.children: c.parent = self
         self.parent = parent
+        if parent is not None: self._root = self.parent.root()
         self.isleaf = leaf # isleaf <=> never overflowed.
         self.rect = union_all(self.children)
 
     def is_root(self):
         return False
     def root(self):
-        return self.parent.root()
+        return self._root
 
     def insert(self, x):
         if self.isleaf:
@@ -169,19 +174,24 @@ class Node(object):
         self.rect = union_all(self.children)
         
         if len(self.children) > MAXCHILDREN:
-            self.root().stats["overflow"] += 1
+            self.root().stats["overflow_f"] += 1
             self.overflow()
     
     def overflow(self):
+        t = time.clock()
         cur_score = -10
         cur_cluster = None
-        clusterings = [ k_means_cluster(k,self.children) for k in range(2,MAX_KMEANS) ]
+        root = self.root()
+
+        clusterings = [ k_means_cluster(root,k,self.children) for k in range(2,MAX_KMEANS) ]
         score,bestcluster = max( [ (silhouette_coeff(c),c) for c in clusterings ])
         nodes = [ Node(c,self.isleaf,self.parent) for c in bestcluster if len(c) > 0]
 
         self.children = nodes
         self.isleaf = False
         self.parent.deleaf()
+        dur = (time.clock() - t)
+        self.root().stats["longest_overflow"] = max(self.root().stats["longest_overflow"], dur)
 
     def deleaf(self):
         if self.isleaf:
@@ -230,11 +240,13 @@ def closest(centroids, node):
     r_score,ridx = min( [ (d(c),i) for i,c in enumerate(centroids) ] )
     return ridx
 
-def k_means_cluster(k, nodes):
+def k_means_cluster(root, k, nodes):
+    t = time.clock()
     if len(nodes) <= k: return [ [n] for n in nodes ]
     
     ns = list(nodes)
-    
+    root.stats["count_kmeans_iter_f"] += 1
+
     # Initialize: take n random nodes.
     random.shuffle(ns)
 
@@ -244,6 +256,7 @@ def k_means_cluster(k, nodes):
     
     # Loop until stable:
     while True:
+        root.stats["sum_kmeans_iter_f"] += 1
         clusters = [ [] for c in cluster_centers ]
         
         for n in ns: 
@@ -266,6 +279,8 @@ def k_means_cluster(k, nodes):
 
         new_cluster_centers = [ center_of_gravity(c) for c in clusters ]
         if new_cluster_centers == cluster_centers : 
+            root.stats["avg_kmeans_iter_f"] = float(root.stats["sum_kmeans_iter_f"] / root.stats["count_kmeans_iter_f"])
+            root.stats["longest_kmeans"] = max(root.stats["longest_kmeans"], (time.clock() - t))
             return clusters
         else: cluster_centers = new_cluster_centers
         

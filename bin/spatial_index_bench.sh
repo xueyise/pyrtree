@@ -17,8 +17,9 @@
 # The menthod I used for rtree inst: 
 # ./scratch/libspatial_rtree/bin/pip install -e svn+http://svn.gispython.org/svn/gispy/Rtree/trunk#egg=Rtree
 
-
 ROOT=`dirname $0`/..
+. $ROOT/bin/common.sh
+
 VENV=$ROOT/scratch/libspatial_rtree
 PYTHON=$VENV/bin/python
 SIDX=$ROOT/scratch/libspatialindex/lib

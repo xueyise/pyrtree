@@ -5,14 +5,8 @@
 #   working directory vs. last committed version.
 
 ROOT=`dirname $0`/../
-
+. $ROOT/bin/common.sh
 SCRATCH=$ROOT/scratch/
-
-TEST_ITER=10000
-TEST_INTERVAL=10
-
-export TEST_ITER
-export TEST_INTERVAL
 
 
 python pyrtree/bench/bench_rtree.py > scratch/working.log

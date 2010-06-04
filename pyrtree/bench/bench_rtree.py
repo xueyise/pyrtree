@@ -1,4 +1,4 @@
-
+import gc
 # TODO: path hackery.
 if __name__ == "__main__":
     import sys, os
@@ -22,6 +22,7 @@ if "TEST_INTERVAL" in os.environ:
 
 
 if __name__ == "__main__":
+    gc.disable() # FFFFUUUUUUUUUUU
     G = RectangleGen()
     rt = RTree()
     start = time.clock()
@@ -33,7 +34,10 @@ if __name__ == "__main__":
             
             print("%d,%s,%f" % (v, "itime_t", t - interval_start))
             for (k,val) in rt.stats.iteritems():
-                print("%d,%s,%d" % (v, k, val))
+                print("%d,%s,%f" % (v, k, val))
+            for k in rt.stats.keys():
+                if k.endswith("_f"): rt.stats[k] = 0.0
+
 
             #print("%d,%s,%d" % (v, "max_depth", rt.node.max_depth()))
             #print("%d,%s,%d" % (v, "mean_depth", rt.node.mean_depth()))
