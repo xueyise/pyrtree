@@ -28,8 +28,6 @@ if (__name__ == "__main__"):
             xs.append(int(fnum))
             ys.append(float(v))
 
-        pl.xlabel("frame")
-    
         sz = pos(len(data.keys()) - 1,file_counts - 1)
 
         for i,k in enumerate(data.keys()):

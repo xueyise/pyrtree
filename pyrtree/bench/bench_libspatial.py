@@ -1,3 +1,5 @@
+# Like bench_rtree but uses the libspatialindex c library. For comparison!
+# http://pypi.python.org/pypi/Rtree
 
 # TODO: path hackery.
 if __name__ == "__main__":
@@ -5,21 +7,14 @@ if __name__ == "__main__":
     mypath = os.path.dirname(sys.argv[0])
     sys.path.append(os.path.abspath(os.path.join(mypath, "../../")))
 
-from pyrtree.rtree import RTree
+from pyrtree.bench.bench_rtree import ITER,INTERVAL
 from pyrtree.tests.test_rtree import RectangleGen,TstO
-
 import time
-
-# TODO: make these command-line params.
-
-ITER=1000000 # one meeelion
-INTERVAL=1000 # log at every 1k
-
-
+from rtree import Rtree
 
 if __name__ == "__main__":
     G = RectangleGen()
-    rt = RTree()
+    idx = Rtree() # this is a libspatialindex one.
     start = time.clock()
     interval_start = time.clock()
     for v in range(ITER):
@@ -32,7 +27,6 @@ if __name__ == "__main__":
             #print("%d,%s,%d" % (v, "mean_depth", rt.node.mean_depth()))
 
             interval_start = time.clock()
-        rt.insert(TstO(G.rect(0.000001)))
-
-    # Done.
+        rect = G.rect(0.000001)
+        idx.add(v,rect.r)
 
