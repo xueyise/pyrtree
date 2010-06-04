@@ -85,29 +85,40 @@ def union_all(kids):
 
 class RTree(object):
     def __init__(self):
-        self.node = Node()
-        self.node.parent = self
         self.count = 0
+        self.stats = { "root_replace" : 0 ,
+                       "deleaf" : 0,
+                       "overflow" : 0 }
+        self.node = Node([],True,self)
+
 
     def replace(self, o, ncs):
-        self.node = Node(ncs,False)
-        self.node.parent = self
+        self.node = Node(ncs,False,self)
+        self.stats["root_replace"] += 1
 
     def insert(self,o):
         self.count += 1
         self.node.insert(o)
 
+    def root(self): return self
+    def is_root(self): return True
+
     def deleaf(self):
-        pass    
+        self.stats["deleaf"] += 1
+
 
 class Node(object):
-    def __init__(self, kids = [], leaf=True, parent = None):
+    def __init__(self, kids = [], leaf=True, parent=None):
         self.children = kids
         for c in self.children: c.parent = self
-        self.path=""
         self.parent = parent
         self.isleaf = leaf # isleaf <=> never overflowed.
         self.rect = union_all(self.children)
+
+    def is_root(self):
+        return False
+    def root(self):
+        return self.parent.root()
 
     def insert(self, x):
         if self.isleaf:
@@ -158,6 +169,7 @@ class Node(object):
         self.rect = union_all(self.children)
         
         if len(self.children) > MAXCHILDREN:
+            self.root().stats["overflow"] += 1
             self.overflow()
     
     def overflow(self):

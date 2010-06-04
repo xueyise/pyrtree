@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name = "pyrtree",
-    packages = "pyrtree",
+    packages = ["pyrtree"],
     version = "0.50",
     description = "2-Dimensional RTree spatial index",
     author = "Dan Shoutis",

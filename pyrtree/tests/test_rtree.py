@@ -232,16 +232,6 @@ class RTreeTest(ut.TestCase):
             rres = list(rt.node.query_rect(orect))
             self.assertFalse(x in rres)
 
-    def testLogBehavior(self):
-        #return None
-        stops = [10,100,1000,10000,100000,1000000]
-
-        rt = RTree()
-        for x in stops:
-            for v in range(x):
-                rt.node.insert(TstO(G.rect(0.00001)))
-            print("Depth: %d" % rt.node.max_depth())
-
 
 if __name__ == '__main__':
     ut.main()
