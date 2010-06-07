@@ -5,6 +5,7 @@ if __name__ == "__main__":
     sys.path.append(os.path.abspath(os.path.join(mypath, "../../")))
 
 from pyrtree.rtree import *
+from pyrtree.rect import *
 
 import collections
 import unittest as ut
@@ -25,7 +26,10 @@ class RectangleGen(object):
     """ Generate random rectangles w/ various properties. """
     def rect(self, size=10.0):
         x,y,w,h = rr(),rr(),random.uniform(0.0,size), random.uniform(0.0,size)
-        return Rect(x,y,x+w,y+h)
+        r = Rect(x,y,x+w,y+h)
+        assert(not r.swapped_x)
+        assert(not r.swapped_y)
+        return r
 
     def intersectingWith(self,ra):
         sx,sy,ndx,ndy = ra.r
@@ -150,29 +154,50 @@ class RTreeTest(ut.TestCase):
     def testCons(self):
         n = RTree()
 
-    def invariants(self, node):
-        if node.isleaf:
-            for c in node.children:
-                self.assertTrue(isinstance(c,TstO))
+    def invariants(self, tree):
+        self.assertEquals(tree.cursor.index, 0)
+        self._invariants(tree.cursor, {})
+
+    def _invariants(self,node, seen):
+        idx = node.index
+
+        self.assertTrue(idx not in seen)
+
+        seen[idx] = True
+
+        if node.holds_leaves():
+            #print("node: %d, children: %r" % (node.index, [c.index for c in node.children()]))
+            self.assertTrue(node.get_first_child().is_leaf())
+            for c in node.children():
+                #print(c.index)
+                self.assertTrue(c.is_leaf())
+                self.assertTrue(isinstance(c.leaf_obj(),TstO))
         else:
-            for c in node.children:
-                self.assertTrue(isinstance(c,Node))
+            for c in node.children():
+                self.assertTrue(not c.is_leaf())
+        self.assertEquals(idx,node.index)
 
-        if isinstance(node.parent,Node):
-            self.assertTrue(node.parent.rect.does_contain(node.rect))
+        r = node.rect
+        for c in node.children():
+            assert r.does_contain(c.rect)
 
-        for c in node.children:
-            if isinstance(c,Node): self.invariants(c)
+        self.assertEquals(idx,node.index)
+
+        for c in node.children():
+            if not c.is_leaf(): self._invariants(c, seen)
+
+        self.assertEquals(idx,node.index)
 
     def testContainer(self):
         """ Test container-like behaviour. """
         xs = [ TstO(r) for r in take(100,G.rect, 0.1) ]
         tree = RTree()
         for x in xs: 
-            tree.node.insert(x)
-            self.invariants(tree.node)
+            tree.insert(x,x.rect)
+            self.invariants(tree)
 
-        ws = [ x for x in tree.node.walk(lambda x: True) if isinstance(x,TstO) ]
+        ws = [ x.leaf_obj() for x in tree.walk(lambda x,y: True) if x.is_leaf() ]
+        self.invariants(tree)
         rrs = collections.defaultdict(int)
         
         for w in ws:
@@ -185,10 +210,10 @@ class RTreeTest(ut.TestCase):
         xs = [ TstO(r) for r in take(1000,G.rect, 20.0) ]
         tree = RTree()
         for x in xs: 
-            tree.node.insert(x)
-            self.invariants(tree.node)
+            tree.insert(x,x.rect)
+            self.invariants(tree)
 
-        ws = [ x for x in tree.node.walk(lambda x: True) if isinstance(x,TstO) ]
+        ws = [ x.leaf_obj() for x in tree.walk(lambda x,y: True) if x.is_leaf() ]
         for x in xs: self.assertTrue(x in ws)
 
 
@@ -197,39 +222,44 @@ class RTreeTest(ut.TestCase):
         rect = G.rect()
         xs = [ TstO(rect) for i in range(11) ]
         for x in xs:
-            tree.node.insert(x)
-            self.invariants(tree.node)
+            tree.insert(x,x.rect)
+            self.invariants(tree)
 
 
     def testPointQuery(self):
         xs = [ TstO(r) for r in take(1000,G.rect, 0.01) ]
         tree = RTree()
         for x in xs:
-            tree.node.insert(x)
-            self.invariants(tree.node)
+            tree.insert(x,x.rect)
+            self.invariants(tree)
         
         for x in xs:
             qp = G.pointInside(x.rect)
             self.assertTrue(x.rect.does_containpoint(qp))
             op = G.pointOutside(x.rect)
-            rs = list(tree.node.query_point(qp))
+            rs = list([r.leaf_obj() for r in tree.query_point(qp)])
             self.assertTrue(x in rs, "Not in results of len %d :(" % (len(rs)))
-            rrs = list(tree.node.query_point(op))
+            rrs = list([r.leaf_obj() for r in tree.query_point(op)])
             self.assertFalse(x in rrs)
 
     def testRectQuery(self):
         xs = [ TstO(r) for r in take(1000, G.rect, 0.01) ]
         rt = RTree()
         for x in xs: 
-            rt.node.insert(x)
-            self.invariants(rt.node)
+            rt.insert(x,x.rect)
+            self.invariants(rt)
 
         for x in xs:
             qrect = G.intersectingWith(x.rect)
             orect = G.disjointWith(x.rect)
-            res = list(rt.node.query_rect(qrect))
+            self.assertTrue(qrect.does_intersect(x.rect))
+            p = G.pointInside(x.rect)
+            res = list([ro.leaf_obj() for ro in rt.query_point(p)])
+            self.invariants(rt)
             self.assertTrue(x in res)
-            rres = list(rt.node.query_rect(orect))
+            res2 = list([r.leaf_obj() for r in rt.query_rect(qrect)])
+            self.assertTrue(x in res2)
+            rres = list([r.leaf_obj() for r in rt.query_rect(orect)])
             self.assertFalse(x in rres)
 
 

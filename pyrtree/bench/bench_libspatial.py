@@ -22,7 +22,9 @@ if __name__ == "__main__":
             # interval time taken, total time taken, # rects, cur max depth
             t = time.clock()
             
-            print("%d,%s,%f" % (v, "itime_t", t - interval_start))
+            dt = t - interval_start
+            print("%d,%s,%f" % (v, "itime_t", dt))
+            print("%d,%s,%f" % (v, "avg_insert_t", (dt/float(INTERVAL))))
             #print("%d,%s,%d" % (v, "max_depth", rt.node.max_depth()))
             #print("%d,%s,%d" % (v, "mean_depth", rt.node.mean_depth()))
 

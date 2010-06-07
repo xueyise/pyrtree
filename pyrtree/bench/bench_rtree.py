@@ -32,7 +32,9 @@ if __name__ == "__main__":
             # interval time taken, total time taken, # rects, cur max depth
             t = time.clock()
             
-            print("%d,%s,%f" % (v, "itime_t", t - interval_start))
+            dt = t - interval_start
+            print("%d,%s,%f" % (v, "itime_t", dt))
+            print("%d,%s,%f" % (v, "avg_insert_t", (dt/float(INTERVAL))))
             for (k,val) in rt.stats.iteritems():
                 print("%d,%s,%f" % (v, k, val))
             for k in rt.stats.keys():
@@ -43,7 +45,8 @@ if __name__ == "__main__":
             #print("%d,%s,%d" % (v, "mean_depth", rt.node.mean_depth()))
 
             interval_start = time.clock()
-        rt.insert(TstO(G.rect(0.000001)))
+        o = TstO(G.rect(0.000001))
+        rt.insert(v,o.rect)
 
     # Done.
 

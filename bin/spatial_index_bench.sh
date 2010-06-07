@@ -20,8 +20,7 @@
 ROOT=`dirname $0`/..
 . $ROOT/bin/common.sh
 
-VENV=$ROOT/scratch/libspatial_rtree
-PYTHON=$VENV/bin/python
+
 SIDX=$ROOT/scratch/libspatialindex/lib
 
 LD_LIBRARY_PATH=$SIDX
