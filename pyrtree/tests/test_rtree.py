@@ -166,7 +166,7 @@ class RTreeTest(ut.TestCase):
 
         if node.holds_leaves():
             #print("node: %d, children: %r" % (node.index, [c.index for c in node.children()]))
-            self.assertTrue(node.get_first_child().is_leaf())
+            self.assertTrue(node.nchildren() == 0 or node.get_first_child().is_leaf())
             for c in node.children():
                 #print(c.index)
                 self.assertTrue(c.is_leaf())
@@ -176,7 +176,7 @@ class RTreeTest(ut.TestCase):
                 self.assertTrue(not c.is_leaf())
         self.assertEquals(idx,node.index)
 
-        r = node.rect
+        r = Rect(node.rect.x, node.rect.y, node.rect.xx, node.rect.yy)
         for c in node.children():
             assert r.does_contain(c.rect)
 
