@@ -32,9 +32,8 @@ class RectangleGen(object):
         return r
 
     def intersectingWith(self,ra):
-        sx,sy,ndx,ndy = ra.r
-        rb_x = random.uniform(sx,ndx)
-        rb_y = random.uniform(sy,ndy)
+        rb_x = random.uniform(ra.x,ra.xx)
+        rb_y = random.uniform(ra.y,ra.yy)
         return Rect(rb_x,rb_y,rb_x + rr(),rb_y + rr())
 
     def disjointWith(self, ra):
@@ -48,8 +47,7 @@ class RectangleGen(object):
         return Rect(ax+x,ay+y,ax+x+w,ay+y+h)
 
     def pointInside(self, r):
-        x,y,xx,yy = r.r
-        return (random.uniform(x,xx),random.uniform(y,yy))
+        return (random.uniform(r.x,r.xx),random.uniform(r.y,r.yy))
 
     def pointOutside(self,r):
         return self.pointInside(self.disjointWith(r))
@@ -76,7 +74,8 @@ class RectangleTests(ut.TestCase):
     def testCons(self):
         r = Rect(0,0,10,10)
         self.assertTrue(r is not None)
-        self.assertTrue(r.r is not None)
+        self.assertTrue(r is not NullRect)
+
     
     def testIntersection(self):
         ra = Rect(0,0,10,10)
@@ -93,7 +92,7 @@ class RectangleTests(ut.TestCase):
         rd = Rect(11,11,21,21)
         res2 = rc.intersect(rd)
         self.assertEquals(res2.area(),0)
-        self.assertTrue(res2.r is None)
+        self.assertTrue(res2 is NullRect)
 
         for i in range(1000):
             a,b = G.intersectingPair()
@@ -101,8 +100,8 @@ class RectangleTests(ut.TestCase):
             c,d = G.disjointPair()
             self.assertEquals(c.intersect(d).area(), 0)
 
-        self.assertTrue(ra.intersect(NullRect).r is None)
-        self.assertTrue(NullRect.intersect(ra).r is None)
+        self.assertTrue(ra.intersect(NullRect) is NullRect)
+        self.assertTrue(NullRect.intersect(ra) is NullRect)
 
     def testUnion(self):
         ra = Rect(0,0,10,10)

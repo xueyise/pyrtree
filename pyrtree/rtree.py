@@ -70,7 +70,7 @@ class _NodeCursor(object):
     @classmethod
     def create_with_children(cls, children, rooto):
         rect = union_all([c for c in children])
-        nr = Rect(*rect.r)
+        nr = Rect(rect.x,rect.y,rect.xx,rect.yy)
         assert(not rect.swapped_x)
         nc = _NodeCursor.create(rooto,rect)
         nc._set_children(children)
@@ -79,7 +79,7 @@ class _NodeCursor(object):
 
     @classmethod
     def create_leaf(cls, rooto, leaf_obj, leaf_rect):
-        rect = Rect(*leaf_rect.r)
+        rect = Rect(leaf_rect.x, leaf_rect.y, leaf_rect.xx, leaf_rect.yy)
         rect.swapped_x = True # Mark as leaf by setting the xswap flag.
         res = _NodeCursor.create(rooto, rect)
         idx = res.index
@@ -128,7 +128,7 @@ class _NodeCursor(object):
     def lift(self):
         return _NodeCursor(self.root,
                            self.index,
-                           self.rect, 
+                           Rect(self.rect.x,self.rect.y,self.rect.xx,self.rect.yy), 
                            self.first_child,
                            self.next_sibling)
 
@@ -145,6 +145,27 @@ class _NodeCursor(object):
             self.rect = NullRect
         else:
             self.rect = Rect(x,y,xx,yy)
+
+            # if self.rect is NullRect: 
+            #     self.rect = Rect(x,y,xx,yy)
+            # else:
+            #     # In-place modify the rect instead of consing a new one.
+            #     rect = self.rect
+            #     rect.x = x
+            #     rect.y = y
+            #     rect.xx = xx
+            #     rect.yy = yy
+
+            #     if (yy < y):
+            #         rect.swapped_y = True
+            #         rect.y = yy
+            #         rect.yy = y
+            #     else: rect.swapped_y = False
+            #     if (xx < x):
+            #         rect.swapped_x = True
+            #         rect.x = xx
+            #         rect.xx = x
+            #     else: rect.swapped_x = False
 
         self.next_sibling = self.npool[nodei]
         self.first_child = self.npool[nodei + 1]
@@ -206,10 +227,11 @@ class _NodeCursor(object):
                 self._insert_child(_NodeCursor.create_leaf(self.root,leafo,leafrect))
 
                 self._balance()
-                
-                    # done: become the original again
+
+                # done: become the original again
                 self._become(index)
                 return
+
             # Micro-optimization: 
             #  inlining union() calls -- logic is:
             # ignored,child = min([ ((c.rect.union(leafrect)).area() - c.rect.area(),c.index) for c in self.children() ])
@@ -225,17 +247,16 @@ class _NodeCursor(object):
                     self.rect = self.rect.union(leafrect)
                     self._insert_child(_NodeCursor.create_leaf(self.root,leafo,leafrect))
                     self._balance()
-                    
+
                     # done: become the original again
                     self._become(index)
                     return
                     
-                x,y,xx,yy = c.rect.r
-                lx,ly,lxx,lyy = leafrect.r
-                nx = x if x < lx else lx
-                nxx = xx if xx > lxx else lxx
-                ny = y if y < ly else ly
-                nyy = yy if yy > lyy else lyy
+                cr = c.rect
+                nx = cr.x if cr.x < leafrect.x else leafrect.x
+                nxx = cr.xx if cr.xx > leafrect.xx else leafrect.xx
+                ny = cr.y if cr.y < leafrect.y else leafrect.y
+                nyy = cr.yy if cr.yy > leafrect.yy else leafrect.yy
                 a = (nxx - nx) * (nyy - ny)
                 if minarea < 0 or a < minarea:
                     minarea = a

@@ -7,17 +7,18 @@ class Rect(object):
      implicitly via swaps in the order of minx/y and maxx/y.)
     """
 
-    __slots__ = ("r", "swapped_x", "swapped_y")
+    __slots__ = ("x","y","xx","yy", "swapped_x", "swapped_y")
 
     def __init__(self, minx,miny,maxx,maxy):
         self.swapped_x = (maxx < minx)
         self.swapped_y = (maxy < miny)
-        
-        x,y,xx,yy = minx,miny,maxx,maxy
-        if self.swapped_x: x,xx = maxx,minx
-        if self.swapped_y: y,yy = maxy,miny
+        self.x = minx
+        self.y = miny
+        self.xx = maxx
+        self.yy = maxy
 
-        self.r = (x,y,xx,yy)
+        if self.swapped_x: self.x,self.xx = maxx,minx
+        if self.swapped_y: self.y,self.yy = maxy,miny
 
 
 
@@ -26,44 +27,38 @@ class Rect(object):
         return self.intersect(orect).area()
 
     def write_raw_coords(self, toarray, idx):
-        x,y,xx,yy = self.r
+        toarray[idx] = self.x
+        toarray[idx+1] = self.y
+        toarray[idx+2] = self.xx
+        toarray[idx+3] = self.yy
         if (self.swapped_x):
-            t = x
-            x = xx
-            xx = t
+            toarray[idx] = self.xx
+            toarray[idx+2] = self.x
         if (self.swapped_y):
-            t = y
-            y = yy
-            yy = t
-        toarray[idx] = x
-        toarray[idx+1] = y
-        toarray[idx+2] = xx
-        toarray[idx+3] = yy
+            toarray[idx + 1] = self.yy
+            toarray[idx + 3] = self.y
+
 
     def area(self):
-        if self.r is None: return 0
-        x,y,x2,y2 = self.r
-        w = x2 - x
-        h = y2 - y
+        w = self.xx - self.x
+        h = self.yy - self.y
         return w * h
 
     def extent(self):
-        x,y,xx,yy = self.r
-        return (x,y,xx-x,yy-y)
+        x = self.x
+        y = self.y
+        return (x,y,self.xx-x,self.yy-y)
 
     def grow(self, amt):
-        x,y,x2,y2 = self.r
         a = amt * 0.5
-        return Rect(x-a,y-a,x2+a,y2+a)
+        return Rect(self.x-a,self.y-a,self.xx+a,self.yy+a)
 
     def intersect(self,o):
-        if self.r is None: return NullRect
-        if o.r is None: return NullRect
+        if self is NullRect: return NullRect
+        if o is NullRect: return NullRect
 
-        x,y,x2,y2 = self.r
-        xx,yy,xx2,yy2 = o.r
-        nx,ny = max(x,xx),max(y,yy)
-        nx2,ny2 = min(x2,xx2),min(y2,yy2)
+        nx,ny = max(self.x,o.x),max(self.y,o.y)
+        nx2,ny2 = min(self.xx,o.xx),min(self.yy,o.yy)
         w,h = nx2-nx, ny2-ny
 
         if w <= 0 or h <= 0: return NullRect
@@ -72,28 +67,35 @@ class Rect(object):
 
 
     def does_contain(self,o):
-        x,y,xx,yy = o.r
-        return self.does_containpoint( (x,y) ) and self.does_containpoint( (xx,yy) )
+        return self.does_containpoint( (o.x,o.y) ) and self.does_containpoint( (o.xx,o.yy) )
 
     def does_intersect(self,o):
         return (self.intersect(o).area() > 0)
 
     def does_containpoint(self,p):
         x,y = p
-        xx,yy,x2,y2 = self.r
-        return (x >= xx and x <= x2 and y >= yy and y <= y2)
+        return (x >= self.x and x <= self.xx and y >= self.y and y <= self.yy)
 
     def union(self,o):
-        if o.r is None: return Rect(*self.r)
-        if self.r is None: return Rect(*o.r)
+        if o is NullRect: return Rect(self.x,self.y,self.xx,self.yy)
+        if self is NullRect: return Rect(o.x,o.y,o.xx,o.yy)
+        
+        x = self.x
+        y = self.y
+        xx = self.xx
+        yy = self.yy
+        ox = o.x
+        oy = o.y
+        oxx = o.xx
+        oyy = o.yy
 
-        x,y,x2,y2 = self.r
-        xx,yy,xx2,yy2 = o.r
-        nx,ny = x if x < xx else xx, y if y < yy else yy
-        nx2,ny2 = x2 if x2 > xx2 else xx2, y2 if y2 > yy2 else yy2
+        nx = x if x < ox else ox
+        ny = y if y < oy else oy
+        nx2 = xx if xx > oxx else oxx
+        ny2 = yy if yy > oyy else oyy
+
         res = Rect(nx,ny,nx2,ny2)
-        assert(not res.swapped_x)
-        assert(not res.swapped_y)
+
         return res
         
     def union_point(self,o):
@@ -101,15 +103,15 @@ class Rect(object):
         return self.union(Rect(x,y,x,y))
 
     def diagonal_sq(self):
-        if self.r is None: return 0
-        x,y,w,h = self.r
+        if self is NullRect: return 0
+        w = self.xx - self.x
+        h = self.yy - self.y
         return w*w + h*h
     
     def diagonal(self):
         return math.sqrt(self.diagonal_sq())
 
 NullRect = Rect(0.0,0.0,0.0,0.0)
-NullRect.r = None
 NullRect.swapped_x = False
 NullRect.swapped_y = False
 
