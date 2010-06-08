@@ -198,39 +198,53 @@ class _NodeCursor(object):
 
         # tail recursion, made into loop:
         while True:
-            if self.holds_leaves():
+            current_node = self.index
+            # Not holding leaves, move down a level in the tree:
+            if 0 == self.first_child:
+                #self._become(current_node)
                 self.rect = self.rect.union(leafrect)
                 self._insert_child(_NodeCursor.create_leaf(self.root,leafo,leafrect))
 
                 self._balance()
                 
-                # done: become the original again
+                    # done: become the original again
                 self._become(index)
                 return
-            else:
-                # Not holding leaves, move down a level in the tree:
+            # Micro-optimization: 
+            #  inlining union() calls -- logic is:
+            # ignored,child = min([ ((c.rect.union(leafrect)).area() - c.rect.area(),c.index) for c in self.children() ])
+            child = None
+            minarea = -1.0
+            
+            for c in self.children():
+                if c.is_leaf(): 
+                    # Another micro-optimzation: instead of checking
+                    #  self.holds_leaves() which takes a suprising time,
+                    #  we discover the case while iterating the children.
+                    self._become(current_node)
+                    self.rect = self.rect.union(leafrect)
+                    self._insert_child(_NodeCursor.create_leaf(self.root,leafo,leafrect))
+                    self._balance()
+                    
+                    # done: become the original again
+                    self._become(index)
+                    return
+                    
+                x,y,xx,yy = c.rect.r
+                lx,ly,lxx,lyy = leafrect.r
+                nx = x if x < lx else lx
+                nxx = xx if xx > lxx else lxx
+                ny = y if y < ly else ly
+                nyy = yy if yy > lyy else lyy
+                a = (nxx - nx) * (nyy - ny)
+                if minarea < 0 or a < minarea:
+                    minarea = a
+                    child = c.index
 
-                # Micro-optimization: 
-                #  inlining union() calls -- logic is:
-                # ignored,child = min([ ((c.rect.union(leafrect)).area() - c.rect.area(),c.index) for c in self.children() ])
-                child = None
-                minarea = -1.0
-                for c in self.children():
-                    x,y,xx,yy = c.rect.r
-                    lx,ly,lxx,lyy = leafrect.r
-                    nx = x if x < lx else lx
-                    nxx = xx if xx > lxx else lxx
-                    ny = y if y < ly else ly
-                    nyy = yy if yy > lyy else lyy
-                    a = (nxx - nx) * (nyy - ny)
-                    if minarea < 0 or a < minarea:
-                        minarea = a
-                        child = c.index
-                # End micro-optimization
-
-                self.rect = self.rect.union(leafrect)
-                self._save_back()
-                self._become(child) # recurse.
+            # End micro-optimization
+            self.rect = self.rect.union(leafrect)
+            self._save_back()
+            self._become(child) # recurse.
             
     def _balance(self):
         if (self.nchildren() <= MAXCHILDREN):
@@ -292,6 +306,7 @@ class _NodeCursor(object):
         ns = self.next_sibling
         r = self.rect
 
+        
         self._become(self.first_child)
         while True:
             yield self
@@ -347,7 +362,7 @@ def center_of_gravity(nodes):
     totarea = 0.0
     xs,ys = 0,0
     for n in nodes:
-        if n.rect.r is not None:
+        if n.rect is not NullRect:
             x,y,w,h = n.rect.extent()
             a = w*h
             xs = xs + (a * (x + (0.5 * w)))
