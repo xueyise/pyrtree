@@ -20,7 +20,8 @@ class Rect(object):
         if self.swapped_x: self.x,self.xx = maxx,minx
         if self.swapped_y: self.y,self.yy = maxy,miny
 
-
+    def coords(self):
+        return self.x,self.y,self.xx,self.yy
 
 
     def overlap(self, orect):

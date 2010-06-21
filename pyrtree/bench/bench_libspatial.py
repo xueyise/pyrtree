@@ -30,5 +30,5 @@ if __name__ == "__main__":
 
             interval_start = time.clock()
         rect = G.rect(0.000001)
-        idx.add(v,rect.r)
+        idx.add(v,rect.coords())
 

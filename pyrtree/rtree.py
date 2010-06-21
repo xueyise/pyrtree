@@ -79,7 +79,7 @@ class _NodeCursor(object):
 
     @classmethod
     def create_leaf(cls, rooto, leaf_obj, leaf_rect):
-        rect = Rect(leaf_rect.x, leaf_rect.y, leaf_rect.xx, leaf_rect.yy)
+        rect = Rect(leaf_rect.x,leaf_rect.y,leaf_rect.xx,leaf_rect.yy)
         rect.swapped_x = True # Mark as leaf by setting the xswap flag.
         res = _NodeCursor.create(rooto, rect)
         idx = res.index
@@ -128,7 +128,7 @@ class _NodeCursor(object):
     def lift(self):
         return _NodeCursor(self.root,
                            self.index,
-                           Rect(self.rect.x,self.rect.y,self.rect.xx,self.rect.yy), 
+                           self.rect, 
                            self.first_child,
                            self.next_sibling)
 
@@ -145,27 +145,6 @@ class _NodeCursor(object):
             self.rect = NullRect
         else:
             self.rect = Rect(x,y,xx,yy)
-
-            # if self.rect is NullRect: 
-            #     self.rect = Rect(x,y,xx,yy)
-            # else:
-            #     # In-place modify the rect instead of consing a new one.
-            #     rect = self.rect
-            #     rect.x = x
-            #     rect.y = y
-            #     rect.xx = xx
-            #     rect.yy = yy
-
-            #     if (yy < y):
-            #         rect.swapped_y = True
-            #         rect.y = yy
-            #         rect.yy = y
-            #     else: rect.swapped_y = False
-            #     if (xx < x):
-            #         rect.swapped_x = True
-            #         rect.x = xx
-            #         rect.xx = x
-            #     else: rect.swapped_x = False
 
         self.next_sibling = self.npool[nodei]
         self.first_child = self.npool[nodei + 1]
@@ -219,53 +198,39 @@ class _NodeCursor(object):
 
         # tail recursion, made into loop:
         while True:
-            current_node = self.index
-            # Not holding leaves, move down a level in the tree:
-            if 0 == self.first_child:
-                #self._become(current_node)
+            if self.holds_leaves():
                 self.rect = self.rect.union(leafrect)
                 self._insert_child(_NodeCursor.create_leaf(self.root,leafo,leafrect))
 
                 self._balance()
-
+                
                 # done: become the original again
                 self._become(index)
                 return
+            else:
+                # Not holding leaves, move down a level in the tree:
 
-            # Micro-optimization: 
-            #  inlining union() calls -- logic is:
-            # ignored,child = min([ ((c.rect.union(leafrect)).area() - c.rect.area(),c.index) for c in self.children() ])
-            child = None
-            minarea = -1.0
-            
-            for c in self.children():
-                if c.is_leaf(): 
-                    # Another micro-optimzation: instead of checking
-                    #  self.holds_leaves() which takes a suprising time,
-                    #  we discover the case while iterating the children.
-                    self._become(current_node)
-                    self.rect = self.rect.union(leafrect)
-                    self._insert_child(_NodeCursor.create_leaf(self.root,leafo,leafrect))
-                    self._balance()
+                # Micro-optimization: 
+                #  inlining union() calls -- logic is:
+                # ignored,child = min([ ((c.rect.union(leafrect)).area() - c.rect.area(),c.index) for c in self.children() ])
+                child = None
+                minarea = -1.0
+                for c in self.children():
+                    x,y,xx,yy = c.rect.coords()
+                    lx,ly,lxx,lyy = leafrect.coords()
+                    nx = x if x < lx else lx
+                    nxx = xx if xx > lxx else lxx
+                    ny = y if y < ly else ly
+                    nyy = yy if yy > lyy else lyy
+                    a = (nxx - nx) * (nyy - ny)
+                    if minarea < 0 or a < minarea:
+                        minarea = a
+                        child = c.index
+                # End micro-optimization
 
-                    # done: become the original again
-                    self._become(index)
-                    return
-                    
-                cr = c.rect
-                nx = cr.x if cr.x < leafrect.x else leafrect.x
-                nxx = cr.xx if cr.xx > leafrect.xx else leafrect.xx
-                ny = cr.y if cr.y < leafrect.y else leafrect.y
-                nyy = cr.yy if cr.yy > leafrect.yy else leafrect.yy
-                a = (nxx - nx) * (nyy - ny)
-                if minarea < 0 or a < minarea:
-                    minarea = a
-                    child = c.index
-
-            # End micro-optimization
-            self.rect = self.rect.union(leafrect)
-            self._save_back()
-            self._become(child) # recurse.
+                self.rect = self.rect.union(leafrect)
+                self._save_back()
+                self._become(child) # recurse.
             
     def _balance(self):
         if (self.nchildren() <= MAXCHILDREN):
@@ -327,7 +292,6 @@ class _NodeCursor(object):
         ns = self.next_sibling
         r = self.rect
 
-        
         self._become(self.first_child)
         while True:
             yield self
