@@ -1,3 +1,8 @@
 
-__all__ = ["rtree"]
+__all__ = ["rtree","rect"]
 
+import rect
+import rtree
+
+Rect = rect.Rect
+RTree = rtree.RTree
