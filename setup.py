@@ -9,7 +9,7 @@ setup(
     description = "2-Dimensional RTree spatial index",
     author = "Dan Shoutis",
     author_email = "dan@shoutis.org",
-    url="http://fix.me",
+    url="http://code.google.com/p/pyrtree",
     long_description = """\
 Two-dimensional RTree spatial index.
 
